@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="theme-color" content="#2a2a2a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MikuMikuWorld">
+    
+    <title>MikuMikuWorld - Web Editor</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23ff6b6b'/><text x='50' y='50' font-size='60' fill='white' text-anchor='middle' dominant-baseline='central'>♪</text></svg>">
+    <link rel="stylesheet" href="css/style.css">
+    
+    <style>
+        /* グローバルフック */
+        html.fullscreen body {
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <!-- ヘッダー -->
+    <header class="header">
+        <h1>🎵 MikuMikuWorld Web Editor</h1>
+        <div class="header-right">
+            <span class="version">v1.0</span>
+        </div>
+    </header>
+
+    <!-- メインコンテナ -->
+    <div class="container">
+        <!-- サイドバー -->
+        <aside class="sidebar">
+            <!-- メタデータセクション -->
+            <div class="sidebar-section">
+                <div class="sidebar-title">Score Info</div>
+                
+                <div class="form-group">
+                    <label for="title-input">Title</label>
+                    <input type="text" id="title-input" placeholder="Score title">
+                </div>
+                
+                <div class="form-group">
+                    <label for="artist-input">Artist</label>
+                    <input type="text" id="artist-input" placeholder="Artist name">
+                </div>
+                
+                <div class="form-group">
+                    <label for="designer-input">Designer</label>
+                    <input type="text" id="designer-input" placeholder="Designer name">
+                </div>
+
+                <div class="form-group">
+                    <label for="difficulty-input">Difficulty</label>
+                    <input type="number" id="difficulty-input" min="0" max="15" value="0">
+                </div>
+
+                <div class="form-group">
+                    <label for="playlevel-input">Play Level</label>
+                    <input type="number" id="playlevel-input" min="1" max="26" value="1">
+                </div>
+            </div>
+
+            <!-- ファイル操作 -->
+            <div class="sidebar-section">
+                <div class="sidebar-title">File</div>
+                <div class="btn-group">
+                    <button id="import-btn" class="btn-secondary">📂 Import SUS</button>
+                    <button id="export-btn">💾 Export SUS</button>
+                </div>
+            </div>
+
+            <!-- 再生操作 -->
+            <div class="sidebar-section">
+                <div class="sidebar-title">Playback</div>
+                <div class="btn-group">
+                    <button id="play-btn">▶ Play</button>
+                    <button id="stop-btn" class="btn-secondary">⏹ Stop</button>
+                </div>
+            </div>
+
+            <!-- ツール -->
+            <div class="sidebar-section">
+                <div class="sidebar-title">Tools</div>
+                <div class="btn-group">
+                    <button id="undo-btn" class="btn-secondary" title="Undo (Ctrl+Z)">↶ Undo</button>
+                    <button id="redo-btn" class="btn-secondary" title="Redo (Ctrl+Y)">↷ Redo</button>
+                </div>
+            </div>
+
+            <!-- ヘルプ -->
+            <div class="sidebar-section">
+                <div class="sidebar-title">Help</div>
+                <div style="font-size: 12px; color: var(--text-muted); line-height: 1.6;">
+                    <p><strong>操作方法:</strong></p>
+                    <p>• タップ: ノーツ追加</p>
+                    <p>• Wheel: スクロール</p>
+                    <p>• Ctrl+Wheel: ズーム</p>
+                    <p>• Space: 再生/一時停止</p>
+                    <p>• Delete: 削除</p>
+                    <p>• Ctrl+Z: 戻す</p>
+                    <p>• Ctrl+Y: やり直す</p>
+                    <p>• Ctrl+S: ダウンロード</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- メインエリア -->
+        <div class="main">
+            <!-- ツールバー -->
+            <div class="toolbar">
+                <div class="toolbar-group">
+                    <span class="toolbar-label">Zoom:</span>
+                    <input type="range" id="zoom-slider" min="0.5" max="4" step="0.1" value="1" style="width: 100px;">
+                    <span id="zoom-label">100%</span>
+                </div>
+
+                <div class="toolbar-group">
+                    <span class="toolbar-label">BPM:</span>
+                    <input type="number" id="bpm-input" min="1" max="500" value="120" style="width: 60px;">
+                </div>
+
+                <div class="toolbar-group">
+                    <span class="toolbar-label">Time Sig:</span>
+                    <input type="number" id="timesig-num" min="1" max="12" value="4" style="width: 50px;">
+                    <span style="line-height: 32px;">/</span>
+                    <input type="number" id="timesig-den" min="1" max="16" value="4" style="width: 50px;">
+                </div>
+            </div>
+
+            <!-- Canvas -->
+            <canvas id="timeline"></canvas>
+
+            <!-- ステータスバー -->
+            <div class="statusbar">
+                <div class="statusbar-left">
+                    <span>Beat: <strong id="beat-display">0.00</strong></span>
+                    <span>Notes: <strong id="note-count">0</strong></span>
+                </div>
+                <div class="statusbar-right">
+                    <span id="status-message">Ready</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- スクリプト -->
+    <script src="js/susParser.js"></script>
+    <script src="js/timelineRenderer.js"></script>
+    <script src="js/editor.js"></script>
+
+    <script>
+        // 追加の初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            // Undo/Redo ボタン
+            document.getElementById('undo-btn').addEventListener('click', () => {
+                window.editor.undo();
+            });
+            document.getElementById('redo-btn').addEventListener('click', () => {
+                window.editor.redo();
+            });
+
+            // ズームスライダー
+            document.getElementById('zoom-slider').addEventListener('input', (e) => {
+                const zoom = parseFloat(e.target.value);
+                window.editor.ui.renderer.zoom = zoom;
+                window.editor.ui.renderer.beatHeight = 80 * zoom;
+                document.getElementById('zoom-label').textContent = Math.round(zoom * 100) + '%';
+                window.editor.render();
+            });
+
+            // BPM入力
+            document.getElementById('bpm-input').addEventListener('change', (e) => {
+                window.editor.playback.bpm = parseFloat(e.target.value) || 120;
+                if (window.editor.scoreData.bpmList.length > 0) {
+                    window.editor.scoreData.bpmList[0].bpm = window.editor.playback.bpm;
+                }
+            });
+
+            // ステータス更新
+            setInterval(() => {
+                document.getElementById('beat-display').textContent = window.editor.playback.currentBeat.toFixed(2);
+                document.getElementById('note-count').textContent = window.editor.scoreData.notes.length;
+            }, 100);
+
+            // Service Worker 登録（オフライン対応）
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js').catch(() => {
+                    // Service Worker は必須ではない
+                });
+            }
+
+            // iOS パッドマージン対応
+            const updateSafeArea = () => {
+                const getEnv = (e) => parseInt(getComputedStyle(document.documentElement).getPropertyValue(e)) || 0;
+                const paddingTop = getEnv('--safe-area-inset-top');
+                const paddingBottom = getEnv('--safe-area-inset-bottom');
+                
+                if (paddingTop > 0) {
+                    document.body.style.paddingTop = paddingTop + 'px';
+                }
+                if (paddingBottom > 0) {
+                    document.querySelector('.statusbar').style.paddingBottom = paddingBottom + 'px';
+                }
+            };
+            updateSafeArea();
+            window.addEventListener('orientationchange', updateSafeArea);
+
+            // コンテキストメニュー無効化（タッチデバイス）
+            if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+                document.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                });
+            }
+        });
+
+        // ページ離脱時の確認
+        window.addEventListener('beforeunload', (e) => {
+            if (window.editor && window.editor.scoreData.notes.length > 0) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+    </script>
+</body>
+</html>
